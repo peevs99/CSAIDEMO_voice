@@ -128,12 +128,21 @@
     // --- UI & CHAT LOGIC ---
     function toggleChat() {
         const chatWidget = document.getElementById('chat-widget');
+        const isOpening = chatWidget.classList.contains('hidden');
         chatWidget.classList.toggle('hidden');
-        if (!chatWidget.classList.contains('hidden') && chatHistory.length === 0) {
-            addMessageToChat('ai', `Hello ${currentUser.name.split(' ')[0]}! How can I help you today?`, false);
-            document.getElementById('escalate-container').innerHTML = `<button onclick="switchToVoiceBot()" class="text-xs text-indigo-600 hover:underline font-semibold">Switch to Live Voice Assistant</button>`;
-        } else if (chatWidget.classList.contains('hidden') && isVoiceModeActive) {
-            endVoiceConversation();
+
+        if (isOpening) { // This block runs when the chat is being opened
+            if (chatHistory.length === 0) {
+                addMessageToChat('ai', `Hello ${currentUser.name.split(' ')[0]}! How can I help you today?`, false);
+            }
+            // Always show the switch button if voice mode isn't already active
+            if (!isVoiceModeActive) {
+                document.getElementById('escalate-container').innerHTML = `<button onclick="switchToVoiceBot()" class="text-xs text-indigo-600 hover:underline font-semibold">Switch to Live Voice Assistant</button>`;
+            }
+        } else { // This block runs when the chat is being closed
+            if (isVoiceModeActive) {
+                endVoiceConversation();
+            }
         }
     }
 
