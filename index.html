@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DC Water - Customer Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
+        #chat-widget.hidden { transform: scale(0.95) translateY(20px); opacity: 0; visibility: hidden; }
+        #chat-widget { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        .chat-bubble-user { background-color: #005A9C; color: white; border-radius: 1.25rem 1.25rem 0.25rem 1.25rem; }
+        .chat-bubble-ai { background-color: #e5e7eb; color: #1f2937; border-radius: 1.25rem 1.25rem 1.25rem 0.25rem; }
+        .chat-container::-webkit-scrollbar { width: 6px; }
+        .chat-container::-webkit-scrollbar-thumb { background-color: #a5b4fc; border-radius: 3px; }
+        .lds-ellipsis { display: inline-block; position: relative; width: 60px; height: 15px; }
+        .lds-ellipsis div { position: absolute; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: #555; animation-timing-function: cubic-bezier(0, 1, 1, 0); }
+        .lds-ellipsis div:nth-child(1) { left: 6px; animation: lds-ellipsis1 0.6s infinite; }
+        .lds-ellipsis div:nth-child(2) { left: 6px; animation: lds-ellipsis2 0.6s infinite; }
+        .lds-ellipsis div:nth-child(3) { left: 26px; animation: lds-ellipsis2 0.6s infinite; }
+        .lds-ellipsis div:nth-child(4) { left: 45px; animation: lds-ellipsis3 0.6s infinite; }
+        @keyframes lds-ellipsis1 { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes lds-ellipsis3 { 0% { transform: scale(1); } 100% { transform: scale(0); } }
+        @keyframes lds-ellipsis2 { 0% { transform: translate(0, 0); } 100% { transform: translate(19px, 0); } }
+        .card { background-color: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .mic-listening::after { content: ''; position: absolute; top: -8px; left: -8px; right: -8px; bottom: -8px; border-radius: 50%; background-color: rgba(255, 0, 0, 0.5); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.7); opacity: 0.5; } 50% { opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+    </style>
+</head>
+<body class="bg-slate-100">
+
+    <div id="dashboard-content">
+        <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-10 border-b">
+            <div class="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                <img src="https://www.dcwater.com/sites/default/files/logo-dark.png" alt="DC Water Logo" class="h-10">
+                <div class="flex items-center space-x-4">
+                     <button class="text-slate-500 hover:text-slate-800">
+                        <i data-lucide="bell"></i>
+                     </button>
+                     <div class="flex items-center space-x-2">
+                        <img class="h-9 w-9 rounded-full" src="https://placehold.co/100x100/E2E8F0/475569?text=EV" alt="User Avatar">
+                        <div>
+                           <div id="welcome-name" class="text-sm font-semibold text-slate-800">Eleanor Vance</div>
+                           <div id="account-number-header" class="text-xs text-slate-500">Account: 11235813</div>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </header>
+         <main class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
+            <p class="mt-1 text-slate-600">Welcome back, Eleanor. Here's your account overview.</p>
+        </main>
+    </div>
+
+    <button id="chat-bubble" onclick="toggleChat()" class="fixed bottom-6 right-6 bg-blue-700 text-white rounded-full p-4 shadow-lg hover:bg-blue-800 transition-transform transform hover:scale-110">
+        <i data-lucide="message-circle"></i>
+    </button>
+
+    <div id="chat-widget" class="hidden fixed bottom-20 right-6 w-96 max-w-[calc(100vw-3rem)] h-[75vh] max-h-[600px] bg-white rounded-2xl flex flex-col">
+        <header class="bg-blue-800 text-white p-4 flex justify-between items-center rounded-t-2xl">
+            <div>
+                <h2 class="text-lg font-semibold">DC Water AI Assistant</h2>
+                <p id="chat-status-widget" class="text-sm text-blue-200 flex items-center"><span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>Online</p>
+            </div>
+            <button onclick="toggleChat()" class="text-blue-200 hover:text-white"><i data-lucide="x"></i></button>
+        </header>
+        
+        <main id="chat-container" class="flex-grow p-4 overflow-y-auto chat-container"></main>
+
+        <footer class="p-4 border-t border-gray-200">
+            <div id="suggested-questions-container" class="flex flex-wrap gap-2 mb-3"></div>
+            <div id="input-area" class="flex items-center bg-gray-100 rounded-full p-1 transition-colors duration-300">
+                <input type="text" id="userInput" class="flex-grow bg-transparent border-none focus:ring-0 px-3 text-gray-700" placeholder="Ask a question...">
+                <button onclick="sendMessage()" class="bg-blue-700 hover:bg-blue-800 text-white rounded-full p-2 transition-colors duration-300">
+                    <i data-lucide="send"></i>
+                </button>
+            </div>
+            <div id="escalate-container" class="text-center mt-3"></div>
+        </footer>
+    </div>
+
+<script>
+    // --- CONFIGURATION ---
+    // This will be your deployed Python server's URL.
+    // For local testing, use 'ws://localhost:8000'.
+    // For production, it will be something like 'wss://your-app-name.onrender.com'
+    const WEBSOCKET_URL = "ws://localhost:8000";
+
+    // --- FAKE USER DATA ---
+    const currentUser = {
+        name: "Eleanor Vance",
+        accountNumber: "11235813",
+    };
+
+    // --- APPLICATION STATE ---
+    let chatHistory = [];
+    let isVoiceModeActive = false;
+    let socket;
+    let mediaRecorder;
+    let audioQueue = [];
+    let isPlaying = false;
+    let audioContext;
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        document.getElementById('welcome-name').textContent = currentUser.name;
+        document.getElementById('account-number-header').textContent = `Account: ${currentUser.accountNumber}`;
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        lucide.createIcons();
+        // Initialize AudioContext on a user gesture
+        document.body.addEventListener('click', initAudioContext, { once: true });
+    };
+
+    function initAudioContext() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log("AudioContext initialized.");
+        }
+    }
+
+    // --- UI & CHAT LOGIC ---
+    function toggleChat() {
+        const chatWidget = document.getElementById('chat-widget');
+        chatWidget.classList.toggle('hidden');
+        if (!chatWidget.classList.contains('hidden') && chatHistory.length === 0) {
+            addMessageToChat('ai', `Hello ${currentUser.name.split(' ')[0]}! How can I help you today?`, false);
+            document.getElementById('escalate-container').innerHTML = `<button onclick="switchToVoiceBot()" class="text-xs text-indigo-600 hover:underline font-semibold">Switch to Live Voice Assistant</button>`;
+        } else if (chatWidget.classList.contains('hidden') && isVoiceModeActive) {
+            endVoiceConversation();
+        }
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('userInput');
+        const message = input.value.trim();
+        if (message === '') return;
+        addMessageToChat('user', message);
+        input.value = '';
+        addTypingIndicator();
+        // In a real app, you'd send this to a text-based bot. Here, we just simulate a response.
+        setTimeout(() => {
+             addMessageToChat('ai', "I'm a simple text bot. For complex issues, please use the Live Voice Assistant.", false);
+        }, 1500);
+    }
+    
+    function addMessageToChat(sender, message, isLive = false) {
+        removeTypingIndicator();
+        const chatContainer = document.getElementById('chat-container');
+        const msg = document.createElement('div');
+        msg.className = `flex mb-3 ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+        let iconHtml = '';
+        if (sender === 'ai' && !isLive) iconHtml = `<div class="w-8 h-8 rounded-full bg-blue-700 text-white flex items-center justify-center mr-2 flex-shrink-0 text-xs font-bold">AI</div>`;
+        if (sender === 'ai' && isLive) iconHtml = `<div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center mr-2 flex-shrink-0"><i data-lucide="mic"></i></div>`;
+
+        msg.innerHTML = `
+            ${sender !== 'user' ? iconHtml : ''}
+            <div class="p-3 text-sm ${sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'} max-w-xs">
+                ${message}
+            </div>
+        `;
+        chatContainer.appendChild(msg);
+        lucide.createIcons();
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        if (sender !== 'user') chatHistory.push({ sender, message });
+    }
+
+    function addTypingIndicator() {
+        if (document.getElementById('typing-indicator')) return;
+        const chatContainer = document.getElementById('chat-container');
+        const indicator = document.createElement('div');
+        indicator.id = 'typing-indicator';
+        indicator.className = 'flex justify-start mb-3';
+        indicator.innerHTML = `<div class="w-8 h-8 rounded-full bg-blue-700 text-white flex items-center justify-center mr-2 flex-shrink-0 text-xs font-bold">AI</div><div class="p-3 chat-bubble-ai"><div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></div>`;
+        chatContainer.appendChild(indicator);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        document.getElementById('typing-indicator')?.remove();
+    }
+
+    // --- WEBSOCKET & LIVE VOICE LOGIC ---
+    async function switchToVoiceBot() {
+        initAudioContext(); // Ensure context is ready
+        addMessageToChat('ai', "Connecting to the live voice assistant...", true);
+        isVoiceModeActive = true;
+        document.getElementById('escalate-container').innerHTML = ''; // Hide button
+
+        const statusWidget = document.getElementById('chat-status-widget');
+        statusWidget.innerHTML = `<span class="h-2 w-2 bg-yellow-400 rounded-full mr-2 animate-pulse"></span>Connecting...`;
+
+        socket = new WebSocket(WEBSOCKET_URL);
+
+        socket.onopen = () => {
+            console.log("WebSocket connection established.");
+            statusWidget.innerHTML = `<span class="h-2 w-2 bg-red-400 rounded-full mr-2 animate-pulse"></span>Live Conversation`;
+            startStreamingMicrophone();
+        };
+
+        socket.onmessage = async (event) => {
+            if (typeof event.data === 'string') {
+                // Handle text transcript from server if needed
+                console.log("Transcript:", event.data);
+            } else {
+                // Handle audio data
+                const arrayBuffer = await event.data.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                audioQueue.push(audioBuffer);
+                if (!isPlaying) {
+                    playNextAudioChunk();
+                }
+            }
+        };
+
+        socket.onclose = () => {
+            console.log("WebSocket connection closed.");
+            endVoiceConversation();
+        };
+
+        socket.onerror = (error) => {
+            console.error("WebSocket Error:", error);
+            addMessageToChat('ai', "Sorry, I couldn't connect to the live voice service.", true);
+            endVoiceConversation();
+        };
+    }
+
+    async function startStreamingMicrophone() {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+                socket.send(event.data);
+            }
+        };
+
+        mediaRecorder.start(250); // Send audio data in chunks every 250ms
+        updateInputAreaForVoice();
+    }
+
+    function playNextAudioChunk() {
+        if (audioQueue.length === 0) {
+            isPlaying = false;
+            return;
+        }
+        isPlaying = true;
+        const audioBuffer = audioQueue.shift();
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.start();
+        source.onended = () => {
+            playNextAudioChunk();
+        };
+    }
+
+    function endVoiceConversation() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close();
+        }
+        isVoiceModeActive = false;
+        
+        const statusWidget = document.getElementById('chat-status-widget');
+        statusWidget.innerHTML = `<span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>Online`;
+
+        const inputArea = document.getElementById('input-area');
+        inputArea.innerHTML = `
+            <input type="text" id="userInput" class="flex-grow bg-transparent border-none focus:ring-0 px-3 text-gray-700" placeholder="Ask a question...">
+            <button onclick="sendMessage()" class="bg-blue-700 hover:bg-blue-800 text-white rounded-full p-2 transition-colors duration-300">
+                <i data-lucide="send"></i>
+            </button>`;
+        lucide.createIcons();
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        document.getElementById('escalate-container').innerHTML = `<button onclick="switchToVoiceBot()" class="text-xs text-indigo-600 hover:underline font-semibold">Switch to Live Voice Assistant</button>`;
+    }
+
+    function updateInputAreaForVoice() {
+        const inputArea = document.getElementById('input-area');
+        inputArea.innerHTML = `
+            <div class="w-full flex justify-center items-center text-gray-600 px-2">
+                <span class="relative mic-listening">
+                    <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93V17h-2v-2.07A6.986 6.986 0 013 8a1 1 0 012 0 5 5 0 0010 0 1 1 0 112 0 6.986 6.986 0 01-4 6.93z" clip-rule="evenodd"></path></svg>
+                </span>
+                <span class="ml-3 font-semibold text-red-500">Live Conversation Active</span>
+                 <button onclick="endVoiceConversation()" class="ml-4 text-xs font-semibold text-gray-500 hover:text-red-700">Stop</button>
+            </div>`;
+    }
+</script>
+
+</body>
+</html>
