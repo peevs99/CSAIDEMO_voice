@@ -1,0 +1,2 @@
+google-generativeai==0.7.1
+websockets==12.0
